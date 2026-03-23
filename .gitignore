@@ -1,1 +1,5 @@
 node_modules/
+
+# SAM
+.aws-sam/
+samconfig.toml

@@ -9,7 +9,9 @@
   },
   "scripts": {
     "build": "tsc && chmod 755 build/index.js",
-    "start": "node build/index.js"
+    "start": "node build/index.js",
+    "deploy": "npm run build && cd infra && sam build && sam deploy",
+    "deploy:guided": "npm run build && cd infra && sam build && sam deploy --guided"
   },
   "keywords": [
     "mcp",
