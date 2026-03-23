@@ -11,15 +11,24 @@
     "build": "tsc && chmod 755 build/index.js",
     "start": "node build/index.js"
   },
-  "keywords": ["mcp", "github", "monitoring"],
+  "keywords": [
+    "mcp",
+    "github",
+    "monitoring"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1014.0",
+    "@aws-sdk/lib-dynamodb": "^3.1014.0",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "@octokit/rest": "^22.0.1",
+    "jsonwebtoken": "^9.0.3",
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@types/aws-lambda": "^8.10.161",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^25.3.5",
     "typescript": "^5.9.3"
   }
