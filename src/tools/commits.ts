@@ -37,7 +37,7 @@ export function registerCommitTools(server: McpServer) {
             .filter((r) => !r.archived)
             .map((r) => r.name);
 
-      const repoStats = await mapConcurrent(
+      const { results: repoStats, errors } = await mapConcurrent(
         repoNames,
         async (repoName) => {
           const commits = await octokit.paginate(octokit.repos.listCommits, {
@@ -53,7 +53,8 @@ export function registerCommitTools(server: McpServer) {
           }
           return null;
         },
-        5
+        5,
+        (name) => name
       );
 
       const validStats = repoStats.filter(
@@ -74,6 +75,11 @@ export function registerCommitTools(server: McpServer) {
                 total_commits: totalCommits,
                 repos_with_commits: validStats.length,
                 by_repo: validStats,
+                ...(errors.length > 0 && {
+                  warnings: errors.map(
+                    (e) => `Failed to fetch ${e.item}: ${e.error}`
+                  ),
+                }),
               },
               null,
               2

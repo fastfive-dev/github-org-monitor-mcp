@@ -40,7 +40,7 @@ export function registerLOCTools(server: McpServer) {
         ? new Date(until).getTime() / 1000
         : Date.now() / 1000;
 
-      const repoStats = await mapConcurrent(
+      const { results: repoStats, errors } = await mapConcurrent(
         repoNames,
         async (repoName) => {
           const stats = await fetchContributorStats(org, repoName);
@@ -66,7 +66,8 @@ export function registerLOCTools(server: McpServer) {
           }
           return null;
         },
-        5
+        5,
+        (name) => name
       );
 
       const validStats = repoStats.filter(
@@ -100,6 +101,11 @@ export function registerLOCTools(server: McpServer) {
                 total_commits: totalCommits,
                 repos_with_changes: validStats.length,
                 by_repo: validStats,
+                ...(errors.length > 0 && {
+                  warnings: errors.map(
+                    (e) => `Failed to fetch ${e.item}: ${e.error}`
+                  ),
+                }),
               },
               null,
               2

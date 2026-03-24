@@ -4,6 +4,7 @@ import {
   getOctokit,
   fetchContributorStats,
   getOrgRepos,
+  ensureRateLimit,
 } from "../github-client.js";
 import { githubSlug, isoDate } from "./schemas.js";
 import { mapConcurrent } from "../utils/concurrency.js";
@@ -186,7 +187,8 @@ export function registerContributionTools(server: McpServer) {
     {
       title: "Get Member Activity Summary",
       description:
-        "Get a comprehensive activity summary for a member across all organization repositories (commits, PRs, reviews, LOC)",
+        "Get a comprehensive activity summary for a member across organization repositories (commits, PRs, reviews, LOC). " +
+        "Use max_repos to limit scope for large organizations.",
       inputSchema: z.object({
         org: githubSlug.describe("GitHub organization name"),
         username: githubSlug.describe("GitHub username"),
@@ -196,12 +198,36 @@ export function registerContributionTools(server: McpServer) {
         until: isoDate
           .optional()
           .describe("End date (ISO 8601, e.g., '2024-12-31')"),
+        max_repos: z
+          .number()
+          .int()
+          .min(1)
+          .max(200)
+          .optional()
+          .describe(
+            "Maximum number of repos to scan (default: 50). " +
+            "Repos are sorted by most recently updated first."
+          ),
       }),
     },
-    async ({ org, username, since, until }) => {
+    async ({ org, username, since, until, max_repos }) => {
       const octokit = getOctokit();
-      const repos = await getOrgRepos(org);
-      const activeRepos = repos.filter((r) => !r.archived);
+      const allRepos = await getOrgRepos(org);
+      let activeRepos = allRepos.filter((r) => !r.archived);
+
+      // Sort by most recently updated and cap
+      const limit = max_repos ?? 50;
+      activeRepos.sort((a, b) => {
+        const aDate = a.updated_at ? new Date(a.updated_at).getTime() : 0;
+        const bDate = b.updated_at ? new Date(b.updated_at).getTime() : 0;
+        return bDate - aDate;
+      });
+      const totalActiveRepos = activeRepos.length;
+      const wasTruncated = activeRepos.length > limit;
+      activeRepos = activeRepos.slice(0, limit);
+
+      // Check rate limit before expensive operation
+      await ensureRateLimit("core", activeRepos.length * 2);
 
       const sinceTs = since ? new Date(since).getTime() / 1000 : 0;
       const untilTs = until
@@ -209,7 +235,7 @@ export function registerContributionTools(server: McpServer) {
         : Date.now() / 1000;
 
       // LOC from contributor stats (parallelized)
-      const locResults = await mapConcurrent(
+      const { results: locResults, errors } = await mapConcurrent(
         activeRepos,
         async (r) => {
           const stats = await fetchContributorStats(org, r.name);
@@ -240,7 +266,8 @@ export function registerContributionTools(server: McpServer) {
           }
           return null;
         },
-        5
+        5,
+        (r) => r.name
       );
 
       let totalAdditions = 0;
@@ -264,6 +291,7 @@ export function registerContributionTools(server: McpServer) {
 
       let totalPrs = 0;
       let mergedPrs = 0;
+      let prError: string | null = null;
       try {
         const prs = await octokit.paginate(
           "GET /search/issues",
@@ -272,8 +300,8 @@ export function registerContributionTools(server: McpServer) {
         );
         totalPrs = prs.length;
         mergedPrs = prs.filter((p) => p.pull_request?.merged_at).length;
-      } catch {
-        // Search API rate limit
+      } catch (err) {
+        prError = err instanceof Error ? err.message : String(err);
       }
 
       // PRs reviewed
@@ -282,6 +310,7 @@ export function registerContributionTools(server: McpServer) {
       if (until) reviewQuery += ` created:<=${until}`;
 
       let totalReviews = 0;
+      let reviewError: string | null = null;
       try {
         const reviews = await octokit.paginate(
           "GET /search/issues",
@@ -289,9 +318,23 @@ export function registerContributionTools(server: McpServer) {
           (response) => response.data
         );
         totalReviews = reviews.length;
-      } catch {
-        // Search API rate limit
+      } catch (err) {
+        reviewError = err instanceof Error ? err.message : String(err);
       }
+
+      // Collect all warnings
+      const warnings: string[] = [];
+      if (wasTruncated) {
+        warnings.push(
+          `Scanned ${limit} of ${totalActiveRepos} active repos (most recently updated). ` +
+          `Use max_repos to increase.`
+        );
+      }
+      for (const e of errors) {
+        warnings.push(`Failed to fetch stats for ${e.item}: ${e.error}`);
+      }
+      if (prError) warnings.push(`Failed to fetch PRs: ${prError}`);
+      if (reviewError) warnings.push(`Failed to fetch reviews: ${reviewError}`);
 
       return {
         content: [
@@ -302,6 +345,7 @@ export function registerContributionTools(server: McpServer) {
                 username,
                 org,
                 period: { since: since ?? "all time", until: until ?? "now" },
+                repos_scanned: activeRepos.length,
                 summary: {
                   commits: locCommits,
                   pull_requests_authored: totalPrs,
@@ -313,6 +357,7 @@ export function registerContributionTools(server: McpServer) {
                 },
                 active_repos: activeRepoNames,
                 active_repos_count: activeRepoNames.length,
+                ...(warnings.length > 0 && { warnings }),
               },
               null,
               2

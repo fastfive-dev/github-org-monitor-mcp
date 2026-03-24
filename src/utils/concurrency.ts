@@ -1,13 +1,20 @@
+export interface ConcurrentResult<R> {
+  results: (R | null)[];
+  errors: { index: number; item: string; error: string }[];
+}
+
 /**
  * Run async tasks with bounded concurrency.
- * Returns results in the same order as the input, skipping failures.
+ * Returns results in the same order as the input, collecting failures.
  */
 export async function mapConcurrent<T, R>(
   items: T[],
   fn: (item: T) => Promise<R | null>,
-  concurrency = 5
-): Promise<(R | null)[]> {
+  concurrency = 5,
+  itemLabel?: (item: T) => string
+): Promise<ConcurrentResult<R>> {
   const results: (R | null)[] = new Array(items.length).fill(null);
+  const errors: { index: number; item: string; error: string }[] = [];
   let index = 0;
 
   async function worker() {
@@ -15,8 +22,13 @@ export async function mapConcurrent<T, R>(
       const i = index++;
       try {
         results[i] = await fn(items[i]);
-      } catch {
+      } catch (err) {
         results[i] = null;
+        errors.push({
+          index: i,
+          item: itemLabel ? itemLabel(items[i]) : String(i),
+          error: err instanceof Error ? err.message : String(err),
+        });
       }
     }
   }
@@ -26,5 +38,5 @@ export async function mapConcurrent<T, R>(
     () => worker()
   );
   await Promise.all(workers);
-  return results;
+  return { results, errors };
 }

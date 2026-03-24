@@ -5,6 +5,9 @@ import { registerPRTools } from "./tools/pull-requests.js";
 import { registerReviewTools } from "./tools/reviews.js";
 import { registerLOCTools } from "./tools/loc.js";
 import { registerContributionTools } from "./tools/contributions.js";
+import { registerRepoContentTools } from "./tools/repo-content.js";
+import { registerIssuePRDetailTools } from "./tools/issues-prs.js";
+import { registerBranchTools } from "./tools/branches.js";
 
 export function createMcpServer(): McpServer {
   const server = new McpServer({
@@ -18,6 +21,9 @@ export function createMcpServer(): McpServer {
   registerReviewTools(server);
   registerLOCTools(server);
   registerContributionTools(server);
+  registerRepoContentTools(server);
+  registerIssuePRDetailTools(server);
+  registerBranchTools(server);
 
   return server;
 }
