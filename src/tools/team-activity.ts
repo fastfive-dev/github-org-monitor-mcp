@@ -79,7 +79,7 @@ export function registerTeamActivityTools(server: McpServer) {
       await ensureRateLimit("core", activeRepos.length * 2 + memberLogins.length * 2);
 
       const sinceTs = toUnixSeconds(since);
-      const untilTs = toUnixSeconds(until, Date.now() / 1000);
+      const untilTs = toUnixSeconds(until, Date.now() / 1000, true);
 
       // 3. Gather contributor stats per repo
       const memberSet = new Set(memberLogins.map((l) => l.toLowerCase()));
@@ -144,7 +144,7 @@ export function registerTeamActivityTools(server: McpServer) {
             const prs = await octokit.paginate(
               "GET /search/issues",
               { q: prQuery, per_page: 100 },
-              (response) => response.data
+              (response) => response.data.items
             );
 
             const entry = prCounts.get(login.toLowerCase())!;
@@ -172,7 +172,7 @@ export function registerTeamActivityTools(server: McpServer) {
             const reviews = await octokit.paginate(
               "GET /search/issues",
               { q: reviewQuery, per_page: 100 },
-              (response) => response.data
+              (response) => response.data.items
             );
             prCounts.get(login.toLowerCase())!.reviewed = reviews.length;
           } catch (err) {

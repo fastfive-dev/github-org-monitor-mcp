@@ -47,7 +47,7 @@ export function registerPRTools(server: McpServer) {
           q: query,
           per_page: 100,
         },
-        (response) => response.data
+        (response) => response.data.items
       );
 
       let mergedCount = 0;
@@ -58,7 +58,7 @@ export function registerPRTools(server: McpServer) {
 
       for (const item of searchResults) {
         // Extract repo name from repository_url
-        const repoName = item.repository_url?.split("/").pop() ?? "unknown";
+        const repoName = item.repository_url?.split("/").pop() || "unknown";
         byRepo[repoName] = (byRepo[repoName] ?? 0) + 1;
 
         if (item.state === "open") {

@@ -2,6 +2,8 @@ import type { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from "aws-lambda
 import { handleOAuthRequest } from "./oauth/handler.js";
 import { handleMcpRequest } from "./mcp/handler.js";
 
+const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "*";
+
 export async function handler(
   event: APIGatewayProxyEventV2
 ): Promise<APIGatewayProxyResultV2> {
@@ -13,7 +15,7 @@ export async function handler(
     return {
       statusCode: 204,
       headers: {
-        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type, Authorization, mcp-session-id",
       },
@@ -38,7 +40,7 @@ export async function handler(
     return {
       statusCode: result.statusCode,
       headers: {
-        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
         ...result.headers,
       },
       body: result.body,
@@ -64,7 +66,7 @@ export async function handler(
     return {
       statusCode: result.statusCode,
       headers: {
-        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
         ...result.headers,
       },
       body: result.body,

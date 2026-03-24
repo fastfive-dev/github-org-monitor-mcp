@@ -33,7 +33,7 @@ export function registerContributionTools(server: McpServer) {
       const stats = await fetchContributorStats(owner, repo);
 
       const sinceTs = toUnixSeconds(since);
-      const untilTs = toUnixSeconds(until, Date.now() / 1000);
+      const untilTs = toUnixSeconds(until, Date.now() / 1000, true);
 
       const contributors = stats
         .map((s) => {
@@ -121,7 +121,7 @@ export function registerContributionTools(server: McpServer) {
       const prs = await octokit.paginate(
         "GET /search/issues",
         { q: prQuery, per_page: 100 },
-        (response) => response.data
+        (response) => response.data.items
       );
 
       const mergedPrs = prs.filter((p) => p.pull_request?.merged_at);
@@ -130,7 +130,7 @@ export function registerContributionTools(server: McpServer) {
       // Get contributor stats
       const contribStats = await fetchContributorStats(owner, repo);
       const sinceTs = toUnixSeconds(since);
-      const untilTs = toUnixSeconds(until, Date.now() / 1000);
+      const untilTs = toUnixSeconds(until, Date.now() / 1000, true);
 
       let totalAdditions = 0;
       let totalDeletions = 0;
@@ -227,7 +227,7 @@ export function registerContributionTools(server: McpServer) {
       await ensureRateLimit("core", activeRepos.length * 2);
 
       const sinceTs = toUnixSeconds(since);
-      const untilTs = toUnixSeconds(until, Date.now() / 1000);
+      const untilTs = toUnixSeconds(until, Date.now() / 1000, true);
 
       // LOC from contributor stats (parallelized)
       const { results: locResults, errors } = await mapConcurrent(
@@ -291,7 +291,7 @@ export function registerContributionTools(server: McpServer) {
         const prs = await octokit.paginate(
           "GET /search/issues",
           { q: prQuery, per_page: 100 },
-          (response) => response.data
+          (response) => response.data.items
         );
         totalPrs = prs.length;
         mergedPrs = prs.filter((p) => p.pull_request?.merged_at).length;
@@ -310,7 +310,7 @@ export function registerContributionTools(server: McpServer) {
         const reviews = await octokit.paginate(
           "GET /search/issues",
           { q: reviewQuery, per_page: 100 },
-          (response) => response.data
+          (response) => response.data.items
         );
         totalReviews = reviews.length;
       } catch (err) {

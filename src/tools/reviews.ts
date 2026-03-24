@@ -40,7 +40,7 @@ export function registerReviewTools(server: McpServer) {
           q: query,
           per_page: 100,
         },
-        (response) => response.data
+        (response) => response.data.items
       );
 
       // For each PR, get actual review details (limited to first 50 to manage rate limits)
@@ -52,7 +52,7 @@ export function registerReviewTools(server: McpServer) {
       const warnings: string[] = [];
 
       for (const pr of prsToCheck) {
-        const repoName = pr.repository_url?.split("/").pop() ?? "unknown";
+        const repoName = pr.repository_url?.split("/").pop() || "unknown";
         byRepo[repoName] = (byRepo[repoName] ?? 0) + 1;
 
         try {

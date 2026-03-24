@@ -8,7 +8,8 @@ import { createMcpServer } from "../server.js";
 
 function extractBearerToken(authHeader: string | undefined): string | null {
   if (!authHeader?.startsWith("Bearer ")) return null;
-  return authHeader.slice(7);
+  const token = authHeader.slice(7).trim();
+  return token || null; // reject "Bearer " with empty/whitespace-only token
 }
 
 async function ensureValidGitHubToken(githubUserId: string): Promise<string> {

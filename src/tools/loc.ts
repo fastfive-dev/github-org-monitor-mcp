@@ -37,7 +37,7 @@ export function registerLOCTools(server: McpServer) {
             .map((r) => r.name);
 
       const sinceTs = toUnixSeconds(since);
-      const untilTs = toUnixSeconds(until, Date.now() / 1000);
+      const untilTs = toUnixSeconds(until, Date.now() / 1000, true);
 
       const { results: repoStats, errors } = await mapConcurrent(
         repoNames,
