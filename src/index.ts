@@ -20,9 +20,11 @@ async function startHttp(port: number) {
 
   await server.connect(transport);
 
+  const allowedOrigin = process.env.ALLOWED_ORIGIN || "*";
+
   const httpServer = createServer(async (req: IncomingMessage, res: ServerResponse) => {
     // CORS headers
-    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type, mcp-session-id");
 
@@ -68,6 +70,15 @@ async function startHttp(port: number) {
     console.error(`GitHub Org Monitor MCP server running on http://localhost:${port}/mcp`);
     console.error(`Health check: http://localhost:${port}/health`);
   });
+}
+
+// Validate required env vars early
+if (!process.env.GITHUB_TOKEN) {
+  console.error(
+    "Error: GITHUB_TOKEN environment variable is required.\n" +
+    "Create a Personal Access Token at https://github.com/settings/tokens with 'repo', 'read:org' scopes."
+  );
+  process.exit(1);
 }
 
 // CLI argument parsing

@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { fetchContributorStats, getOrgRepos } from "../github-client.js";
 import { githubSlug, isoDate } from "./schemas.js";
 import { mapConcurrent } from "../utils/concurrency.js";
+import { toUnixSeconds } from "../utils/dates.js";
 
 export function registerLOCTools(server: McpServer) {
   server.registerTool(
@@ -35,12 +36,10 @@ export function registerLOCTools(server: McpServer) {
             .filter((r) => !r.archived)
             .map((r) => r.name);
 
-      const sinceTs = since ? new Date(since).getTime() / 1000 : 0;
-      const untilTs = until
-        ? new Date(until).getTime() / 1000
-        : Date.now() / 1000;
+      const sinceTs = toUnixSeconds(since);
+      const untilTs = toUnixSeconds(until, Date.now() / 1000, true);
 
-      const repoStats = await mapConcurrent(
+      const { results: repoStats, errors } = await mapConcurrent(
         repoNames,
         async (repoName) => {
           const stats = await fetchContributorStats(org, repoName);
@@ -66,7 +65,8 @@ export function registerLOCTools(server: McpServer) {
           }
           return null;
         },
-        5
+        5,
+        (name) => name
       );
 
       const validStats = repoStats.filter(
@@ -100,6 +100,11 @@ export function registerLOCTools(server: McpServer) {
                 total_commits: totalCommits,
                 repos_with_changes: validStats.length,
                 by_repo: validStats,
+                ...(errors.length > 0 && {
+                  warnings: errors.map(
+                    (e) => `Failed to fetch ${e.item}: ${e.error}`
+                  ),
+                }),
               },
               null,
               2
