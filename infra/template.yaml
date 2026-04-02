@@ -33,7 +33,7 @@ Resources:
   HttpApi:
     Type: AWS::Serverless::HttpApi
     Properties:
-      StageName: prod
+      StageName: $default
       CorsConfiguration:
         AllowOrigins:
           - "*"
@@ -124,7 +124,7 @@ Resources:
 Outputs:
   ApiUrl:
     Description: API Gateway URL
-    Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com/prod"
+    Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com"
   McpEndpoint:
     Description: MCP Server endpoint for claude.ai connector
-    Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com/prod/mcp"
+    Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com/mcp"
