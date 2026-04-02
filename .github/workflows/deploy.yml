@@ -1,0 +1,52 @@
+name: Deploy to AWS Lambda
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Add node_modules/.bin to PATH
+        run: echo "$GITHUB_WORKSPACE/node_modules/.bin" >> $GITHUB_PATH
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ap-northeast-2
+
+      - name: SAM Build
+        run: sam build --template infra/template.yaml
+
+      - name: SAM Deploy
+        run: |
+          sam deploy \
+            --stack-name github-org-monitor-mcp \
+            --region ap-northeast-2 \
+            --resolve-s3 \
+            --capabilities CAPABILITY_IAM \
+            --no-confirm-changeset \
+            --no-fail-on-empty-changeset \
+            --parameter-overrides \
+              GitHubAppClientId=${{ secrets.GH_APP_CLIENT_ID }} \
+              GitHubAppClientSecret=${{ secrets.GH_APP_CLIENT_SECRET }} \
+              JwtSecret=${{ secrets.JWT_SECRET }}
