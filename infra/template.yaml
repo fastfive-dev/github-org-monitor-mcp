@@ -18,6 +18,10 @@ Parameters:
     Type: String
     Default: fastfive-dev
     Description: GitHub organization to restrict access to
+  BaseUrl:
+    Type: String
+    Default: ""
+    Description: API Gateway base URL (e.g. https://<api-id>.execute-api.ap-northeast-2.amazonaws.com/prod). Leave empty on first deploy.
 
 Globals:
   Function:
@@ -54,7 +58,7 @@ Resources:
           JWT_SECRET: !Ref JwtSecret
           ALLOWED_ORG: !Ref AllowedOrg
           TOKEN_TABLE: !Ref TokenTable
-          BASE_URL: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com/prod"
+          BASE_URL: !Ref BaseUrl
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref TokenTable

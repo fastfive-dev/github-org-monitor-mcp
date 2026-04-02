@@ -50,4 +50,5 @@ jobs:
             --parameter-overrides \
               GitHubAppClientId=${{ secrets.GH_APP_CLIENT_ID }} \
               GitHubAppClientSecret=${{ secrets.GH_APP_CLIENT_SECRET }} \
-              JwtSecret=${{ secrets.JWT_SECRET }}
+              JwtSecret=${{ secrets.JWT_SECRET }} \
+              BaseUrl=${{ secrets.BASE_URL || '' }}
