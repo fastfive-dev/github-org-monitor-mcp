@@ -39,6 +39,13 @@ jobs:
 
       - name: SAM Deploy
         run: |
+          PARAMS="GitHubAppClientId=${{ secrets.GH_APP_CLIENT_ID }}"
+          PARAMS="$PARAMS GitHubAppClientSecret=${{ secrets.GH_APP_CLIENT_SECRET }}"
+          PARAMS="$PARAMS JwtSecret=${{ secrets.JWT_SECRET }}"
+          if [ -n "${{ secrets.BASE_URL }}" ]; then
+            PARAMS="$PARAMS BaseUrl=${{ secrets.BASE_URL }}"
+          fi
+
           sam deploy \
             --stack-name github-org-monitor-mcp \
             --region ap-northeast-2 \
@@ -47,8 +54,4 @@ jobs:
             --capabilities CAPABILITY_IAM \
             --no-confirm-changeset \
             --no-fail-on-empty-changeset \
-            --parameter-overrides \
-              GitHubAppClientId=${{ secrets.GH_APP_CLIENT_ID }} \
-              GitHubAppClientSecret=${{ secrets.GH_APP_CLIENT_SECRET }} \
-              JwtSecret=${{ secrets.JWT_SECRET }} \
-              BaseUrl=${{ secrets.BASE_URL || '' }}
+            --parameter-overrides $PARAMS
